@@ -1,7 +1,7 @@
 const User = require("../models/User.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
+const admin =require("../../firebase")
 
 exports.signup = async (req, res) => {
   try {
@@ -32,6 +32,34 @@ exports.signup = async (req, res) => {
   }
 };
 
+
+exports.googleAuth = async (req, res) => {
+  try {
+
+    const { name, email, image } = req.body;
+
+    let user = await User.findOne({ email });
+
+    // if new user create
+    if (!user) {
+      user = await User.create({
+        name,
+        email,
+        image,
+        provider: "google"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Google login successful",
+      userId: user._id
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 
@@ -67,3 +95,14 @@ exports.login = async (req, res) => {
   token
 });
 };
+
+
+
+
+
+
+
+
+
+
+
