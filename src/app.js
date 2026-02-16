@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
-import authRoutes from "./routes/auth.routes.js"; // 🔥 import routes
+import authRoutes  from "./routes/auth.routes.js"
+
 
 const app = express();
 
@@ -8,7 +9,7 @@ app.use(express.json());
 
 app.use(cors({
   origin: [
-    "http://localhost:5174",
+    "http://localhost:5173",
     "https://your-frontend.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],

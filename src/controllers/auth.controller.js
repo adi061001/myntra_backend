@@ -1,76 +1,36 @@
-const User = require("../models/User.model");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const admin =require("../../firebase")
+import User from "../models/User.model.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { auth } from "../firebase/index.js";
 
-exports.signup = async (req, res) => {
+export const googleAuth = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { token } = req.body;
 
-    // 1. check user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+    console.log("🔥 VERIFY START");
 
-    // 2. hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const decoded = await auth.verifyIdToken(token);
 
-    // 3. save user
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-    });
+    console.log("🔥 USER =>", decoded);
 
-    res.status(201).json({
-      message: "Signup successful",
-      userId: user._id,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-exports.googleAuth = async (req, res) => {
-  try {
-
-    const { name, email, image } = req.body;
-
-    let user = await User.findOne({ email });
-
-    // if new user create
-    if (!user) {
-      user = await User.create({
-        name,
-        email,
-        image,
-        provider: "google"
-      });
-    }
-
-    res.status(200).json({
+    res.json({
       success: true,
-      message: "Google login successful",
-      userId: user._id
+      user: decoded,
     });
-
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.log("🔥🔥🔥 BACKEND ERROR =>", err);
+    res.status(500).json({ error: "Token verification failed" });
   }
 };
 
-
-
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
     return res.status(400).json({
-      message: "User not found"
+      message: "User not found",
     });
   }
 
@@ -78,7 +38,7 @@ exports.login = async (req, res) => {
 
   if (!isMatch) {
     return res.status(400).json({
-      message: "Invalid password"
+      message: "Invalid password",
     });
   }
 
@@ -89,12 +49,99 @@ exports.login = async (req, res) => {
   );
 
   res.status(200).json({
-    status:200,
-  message: "login successful",
-  success: true,
-  token
-});
+    status: 200,
+    message: "login successful",
+    success: true,
+    token,
+  });
 };
+
+export const signup = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+
+    let user = await User.findOne({ email });
+
+if (!user) {
+   // SIGNUP automatically
+   user = await User.create({
+      name,
+      email,
+      picture,
+      provider: "google"
+   });
+}
+
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: { id: newUser._id, name: newUser.name, email: newUser.email },
+    });
+  } catch (error) {
+    console.error("Error during signup:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
+// export const googleAuth = async (req, res) => {
+//   try {
+//     const { token } = req.body;
+
+//     // 1️⃣ Verify Firebase ID token
+//     const decoded = await admin.auth().verifyIdToken(token);
+
+//     const { name, email, picture } = decoded;
+
+//     // 2️⃣ Check user in DB
+//     let user = await User.findOne({ email });
+
+//     // 3️⃣ If not exists → create (Signup)
+//     if (!user) {
+//       user = await User.create({
+//         name,
+//         email,
+//         picture,
+//         provider: "google",
+//       });
+//     }
+
+//     // 4️⃣ Generate JWT
+//     const jwtToken = jwt.sign(
+//       { id: user._id },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "7d" }
+//     );
+
+//     res.json({
+//       message: "Google authentication successful",
+//       token: jwtToken,
+//       user,
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ message: "Google authentication failed" });
+//   }
+// };
 
 
 
